@@ -1,8 +1,6 @@
-name: Azure.ManagementGroup.CI.Pipeline
+name: $(BuildDefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)
 trigger:
   - master
-variables:
-  - group: common
 
 stages:
 - stage: build
@@ -13,28 +11,9 @@ stages:
       name: Hosted Windows 2019 with VS2019
       demands: azureps
     steps:
-    - powershell: |
-        $colURI = [uri]::New("$(System.TeamFoundationCollectionUri)")
-        if ("$(System.TeamFoundationCollectionUri)" -match "visualstudio.com")
-        {
-        $org = $colURI.Authority.split('.')[0]
-        $feedURI = "https://pkgs.dev.azure.com/$org/_packaging/" + "$(ArtifactsFeedName)" + "/nuget/v2"
-        } else {
-        $pkgAuth = "pkgs.$($colURI.Authority)"
-        $feedURI = "https://$pkgAuth" + "$($colURI.AbsolutePath)" + "_packaging/" + "$(ArtifactsFeedName)" + "/nuget/v2"
-        }
-        Write-output "Azure Artifacts Feed URI: $feedURI"
-        Write-Output ("##vso[task.setvariable variable=feedURI]$($feedURI)")
-      displayName: 'Get Azure Artifact Feed URI'
-
-    - pwsh: 'Register-PSRepository -Name "$(ArtifactsFeedName)" -SourceLocation "$(feedURI)" -PublishLocation "$(feedURI)" -InstallationPolicy Trusted'
-      displayName: 'Register PS repository for Azure Artifacts Feed'
-
     - pwsh: |
-        $pw = ConvertTo-SecureString '$(System.AccessToken)' -AsPlainText -Force
-        $cred = New-Object System.Management.Automation.PSCredential 'abc', $pw
-        Install-Module Pester -Repository $(ArtifactsFeedName) -Credential $cred -force -scope CurrentUser
-        Install-Module TestJsonSchema -Repository $(ArtifactsFeedName) -Credential $cred -force -scope CurrentUser
+        Install-Module Pester -Repository PSGallery -force -scope CurrentUser
+        Install-Module TestJsonSchema -Repository PSGallery -force -scope CurrentUser
       displayName: 'Install required PowerShell modules'
 
     - pwsh: |
