@@ -30,12 +30,12 @@
     ],
     "subscriptionPlacements": [
         {
-            "subNameRegex": "^the-big*",
+            "subNameRegex": "^sub-workload-*",
             "subQuotaIdRegex": "^sponsored*",
             "managementGroup": "mg-wl-root"
         },
         {
-            "subNameRegex": "^mvp*",
+            "subNameRegex": "^sub-mgmt-*",
             "subQuotaIdRegex": "^msdn*",
             "managementGroup": "mg-mgmt-root"
         }
