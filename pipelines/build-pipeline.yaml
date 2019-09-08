@@ -1,0 +1,67 @@
+name: Azure.ManagementGroup.CI.Pipeline
+trigger:
+  - master
+variables:
+  - group: common
+
+stages:
+- stage: build
+  jobs:
+  - job: Test_Management_Group_definition_files
+    displayName: Test Management Group definition files
+    pool:
+      name: Hosted Windows 2019 with VS2019
+      demands: azureps
+    steps:
+    - powershell: |
+        $colURI = [uri]::New("$(System.TeamFoundationCollectionUri)")
+        if ("$(System.TeamFoundationCollectionUri)" -match "visualstudio.com")
+        {
+        $org = $colURI.Authority.split('.')[0]
+        $feedURI = "https://pkgs.dev.azure.com/$org/_packaging/" + "$(ArtifactsFeedName)" + "/nuget/v2"
+        } else {
+        $pkgAuth = "pkgs.$($colURI.Authority)"
+        $feedURI = "https://$pkgAuth" + "$($colURI.AbsolutePath)" + "_packaging/" + "$(ArtifactsFeedName)" + "/nuget/v2"
+        }
+        Write-output "Azure Artifacts Feed URI: $feedURI"
+        Write-Output ("##vso[task.setvariable variable=feedURI]$($feedURI)")
+      displayName: 'Get Azure Artifact Feed URI'
+
+    - pwsh: 'Register-PSRepository -Name "$(ArtifactsFeedName)" -SourceLocation "$(feedURI)" -PublishLocation "$(feedURI)" -InstallationPolicy Trusted'
+      displayName: 'Register PS repository for Azure Artifacts Feed'
+
+    - pwsh: |
+        $pw = ConvertTo-SecureString '$(System.AccessToken)' -AsPlainText -Force
+        $cred = New-Object System.Management.Automation.PSCredential 'abc', $pw
+        Install-Module Pester -Repository $(ArtifactsFeedName) -Credential $cred -force -scope CurrentUser
+        Install-Module TestJsonSchema -Repository $(ArtifactsFeedName) -Credential $cred -force -scope CurrentUser
+      displayName: 'Install required PowerShell modules'
+
+    - pwsh: |
+        Import-Module TestJsonSchema 
+        Test-JSONSchema -JsonPath $(Build.SourcesDirectory)\config-files -SchemaPath $(Build.SourcesDirectory)\config-file-schema\input.schema.json -OutputFile $(Build.SourcesDirectory)\TEST-JSONSchema.XML
+      errorActionPreference: continue
+      displayName: 'Pester Test Azure Management Group configuration file'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results **/TEST-*.xml'
+      inputs:
+        testResultsFormat: NUnit
+        testResultsFiles: '**\TEST-*.xml'
+        failTaskOnFailedTests: true
+
+  - job: Publish_Pattern
+    displayName: Publish Pattern
+    dependsOn: 
+    - Test_Management_Group_definition_files
+    steps:
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+        CleanTargetFolder: true
+        OverWrite: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact: drop'

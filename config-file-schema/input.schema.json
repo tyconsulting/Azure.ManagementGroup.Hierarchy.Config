@@ -1,0 +1,141 @@
+{
+    "definitions": {},
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/root.json",
+    "type": "object",
+    "title": "Azure Management Group Configuration Input File Schema",
+    "description": "Input File Schema for the configuration file used by config-managementGroups.ps1 script.",
+    "required": [
+        "tenantRootDisplayName",
+        "managementGroups",
+        "subscriptionPlacements",
+        "defaultManagementGroup"
+    ],
+    "properties": {
+        "tenantRootDisplayName": {
+            "$id": "#/properties/tenantRootDisplayName",
+            "type": "string",
+            "title": "Tenant Root MG Display name",
+            "description": "Display Name for the Tenant Root MG",
+            "default": "",
+            "examples": [
+                "The Root Management Group"
+            ],
+            "pattern": "^(.*)$"
+        },
+        "managementGroups": {
+            "$id": "#/properties/managementGroups",
+            "type": "array",
+            "title": "The Management Groups Schema",
+            "description": "Defines the management group hierechy",
+            "items": {
+                "$id": "#/properties/managementGroups/items",
+                "type": "object",
+                "title": "Management group items",
+                "description": "Defines each individual management group.",
+                "required": [
+                    "name",
+                    "displayName"
+                ],
+                "properties": {
+                    "name": {
+                        "$id": "#/properties/managementGroups/items/properties/name",
+                        "type": "string",
+                        "title": "Management Group Name",
+                        "description": "Defines the name of the management group.",
+                        "default": "",
+                        "examples": [
+                            "mg-scf-ss"
+                        ],
+                        "pattern": "^(.*)$"
+                    },
+                    "displayName": {
+                        "$id": "#/properties/managementGroups/items/properties/displayName",
+                        "type": "string",
+                        "title": "Management Group Display Name",
+                        "description": "Defines the display name of the management group",
+                        "default": "",
+                        "examples": [
+                            "Scaffolding Shared Service"
+                        ],
+                        "pattern": "^(.*)$"
+                    },
+                    "parent": {
+                        "$id": "#/properties/managementGroups/items/properties/parent",
+                        "type": "string",
+                        "title": "Parent Management Group",
+                        "description": "optional, defines the parent management group. if not defined, the parent will be set to the Tenant Root Management Group",
+                        "default": "",
+                        "examples": [
+                            "mg-scf-root"
+                        ],
+                        "pattern": "^(.*)$"
+                    }
+                }
+            }
+        },
+        "subscriptionPlacements": {
+            "$id": "#/properties/subscriptionPlacements",
+            "type": "array",
+            "title": "Subscription Placement Rules",
+            "description": "Defines the which management groups should existing subscriptions be placed.",
+            "items": {
+                "$id": "#/properties/subscriptionPlacements/items",
+                "type": "object",
+                "title": "Subscription placement rule items",
+                "description": "Defines subscription placement rules.",
+                "required": [
+                    "subNameRegex",
+                    "subQuotaIdRegex",
+                    "managementGroup"
+                ],
+                "properties": {
+                    "subNameRegex": {
+                        "$id": "#/properties/subscriptionPlacements/items/properties/subNameRegex",
+                        "type": "string",
+                        "title": "Subscription Name Regular Expression pattern",
+                        "description": "A regular expression pattern used for seaching subscriptions by name.",
+                        "default": "",
+                        "examples": [
+                            "^the-big*"
+                        ],
+                        "pattern": "^(.*)$"
+                    },
+                    "subQuotaIdRegex": {
+                        "$id": "#/properties/subscriptionPlacements/items/properties/subQuotaIdRegex",
+                        "type": "string",
+                        "title": "Subscription Quota Id Regular Expression pattern",
+                        "description": "A regular expression pattern used for seaching subscriptions by quota Id.",
+                        "default": "",
+                        "examples": [
+                            "^MSDN_*"
+                        ],
+                        "pattern": "^(.*)$"
+                    },
+                    "managementGroup": {
+                        "$id": "#/properties/subscriptionPlacements/items/properties/managementGroup",
+                        "type": "string",
+                        "title": "Management Group",
+                        "description": "The name of the management group that the subscriptions that have the name matched the Regex pattern should be placed to.",
+                        "default": "",
+                        "examples": [
+                            "mg-wl-root"
+                        ],
+                        "pattern": "^(.*)$"
+                    }
+                }
+            }
+        },
+        "defaultManagementGroup": {
+            "$id": "#/properties/defaultManagementGroup",
+            "type": "string",
+            "title": "Default Managementgroup",
+            "description": "Defines the name of the management group that any subscriptions do not match the subscription placement rules should be placed to.",
+            "default": "",
+            "examples": [
+                "mg-quarantine"
+            ],
+            "pattern": "^(.*)$"
+        }
+    }
+}

@@ -1,0 +1,44 @@
+{
+    "tenantRootDisplayName": "Tao Yang Lab Root",
+    "managementGroups":[
+        {
+            "name":"mg-mgmt-root",
+            "displayName": "Management Root"
+        },
+        {
+            "name":"mg-wl-root",
+            "displayName": "Workload Root"
+        },
+        {
+            "name":"mg-scf-root",
+            "displayName": "Scaffolding Root"
+        },
+        {
+            "name":"mg-scf-mgmt",
+            "displayName": "Scaffolding Management",
+            "parent": "mg-scf-root"
+        },
+        {
+            "name":"mg-scf-wl",
+            "displayName": "Scaffolding Workload",
+            "parent": "mg-scf-root"
+        },
+        {
+            "name":"mg-quarantine",
+            "displayName": "Quarantine"
+        }
+    ],
+    "subscriptionPlacements": [
+        {
+            "subNameRegex": "^the-big*",
+            "subQuotaIdRegex": "^sponsored*",
+            "managementGroup": "mg-wl-root"
+        },
+        {
+            "subNameRegex": "^mvp*",
+            "subQuotaIdRegex": "^msdn*",
+            "managementGroup": "mg-mgmt-root"
+        }
+    ],
+    "defaultManagementGroup": "mg-quarantine"
+}
