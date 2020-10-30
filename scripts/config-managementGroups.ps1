@@ -26,12 +26,16 @@
 #Requires -Modules 'Az.Resources'
 <#
 =============================================================================
-AUTHOR:  Tao Yang 
+AUTHOR:  Tao Yang
 DATE:    08/05/2019
-Version: 1.0
+Version: 1.1
+Version date: 30/10/2020
+Changelog:
+- 1.1: Replaced parameter *-AzManagementGroup from GroupName to GroupId
 Comment: Create Azure Management Group hierechy based on an input JSON file.
 =============================================================================
 #>
+
 [CmdLetBinding()]
 Param (
   [Parameter(Mandatory = $true, ValueFromPipeline = $true, HelpMessage = 'Specify the file paths for the input json file.')]
@@ -64,8 +68,8 @@ Function UpdateManagementGroups
   Foreach ($mg in $managementGroups)
   {
     Write-Verbose "  - Updating MG '$($mg.name)'..."
-    $parentMg = Get-AzManagementGroup -GroupName $mg.parent
-    $updateResult = Update-AzManagementGroup -GroupName $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring()) -ParentId $($parentMg.Id.tostring())
+    $parentMg = Get-AzManagementGroup -GroupId $mg.parent
+    $updateResult = Update-AzManagementGroup -GroupId $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring()) -ParentId $($parentMg.Id.tostring())
   }
 }
 Function CreateManagementGroups
@@ -79,7 +83,7 @@ Function CreateManagementGroups
   Foreach ($mg in ($managementGroups | where-object {$_.parent.length -eq 0}))
   {
     Write-verbose " - Creating management group '$($mg.name)' with display name '$($mg.displayName)', placed under the Tenant Root MG"
-    $CreateMGResult = New-AzManagementGroup -GroupName $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring())
+    $CreateMGResult = New-AzManagementGroup -GroupId $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring())
     $arrCompletedMG.add($mg.name)
   }
 
@@ -92,8 +96,8 @@ Function CreateManagementGroups
       if ((!$arrCompletedMG.Contains($mg.name)) -and $arrCompletedMG.contains($mg.parent))
       {
         Write-verbose " - Creating management group '$($mg.name)' with display name '$($mg.displayName)', placed under the '$($mg.parent)'"
-        $parentMg = Get-AzManagementGroup -GroupName $mg.parent
-        $CreateMGResult = New-AzManagementGroup -GroupName $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring()) -ParentId $($parentMg.Id.tostring())
+        $parentMg = Get-AzManagementGroup -GroupId $mg.parent
+        $CreateMGResult = New-AzManagementGroup -GroupId $($mg.name.tostring()) -DisplayName $($mg.displayName.tostring()) -ParentId $($parentMg.Id.tostring())
         $arrCompletedMG.add($mg.name)
       }
     }
@@ -112,7 +116,7 @@ Function CheckSubMGMembership
     [Parameter(Mandatory = $true)][string]$subscriptionId,
     [Parameter(Mandatory = $true)][string]$managementGroupName
   )
-  $MG = Get-AzManagementGroup -GroupName $managementGroupName -Expand
+  $MG = Get-AzManagementGroup -GroupId $managementGroupName -Expand
   $bSubInMg = $false
   Foreach ($child in $MG.Children)
   {
@@ -138,7 +142,7 @@ Function MoveSubToMG
       Write-Verbose "  - Subscription '$($placementRule.subName)' with Id $($placementRule.subId) is already placed in management group '$($placementRule.managementGroup)'. Skipped."
     } else {
       Write-Verbose "  - Placing subscription '$($placementRule.subName)' with Id $($placementRule.subId) to management group '$($placementRule.managementGroup)'"
-      $moveSubResult = New-AzManagementGroupSubscription -GroupName $($placementRule.managementGroup) -SubscriptionId $($placementRule.SubId) -PassThru
+      $moveSubResult = New-AzManagementGroupSubscription -GroupId $($placementRule.managementGroup) -SubscriptionId $($placementRule.SubId) -PassThru
       If ($moveSubResult -eq $true)
       {
         Write-Verbose "   - Successfully placed subscription '$($placementRule.subName)' with Id $($placementRule.subId) to management group '$($placementRule.managementGroup)'"
@@ -209,7 +213,7 @@ Try
           #sign in
           ProcessAzureSignIn
         }
-      } 
+      }
     } else {
       if (!$silent)
       {
@@ -233,7 +237,7 @@ Try
 #Get oAuth Token cache from context
 #$Context = Get-AzContext
 $CachedTokens = $context.TokenCache.readItems()
-$CachedToken = "Bearer $(($CachedTokens | Where-Object {$_.authority -imatch $Script:currentTenantId}).AccessToken)" 
+$CachedToken = "Bearer $(($CachedTokens | Where-Object {$_.authority -imatch $Script:currentTenantId}).AccessToken)"
 Write-Verbose "cached token: '$CachedToken'"
 if ($script:whatif)
 {
@@ -294,12 +298,12 @@ $arrExistingMGs = New-object System.Collections.ArrayList
 $ExistingManagementGroups = Get-AzManagementGroup
 Foreach ($MG in $ExistingManagementGroups)
 {
-  [void]$arrExistingMGs.Add((Get-AzManagementGroup -GroupName $MG.name -Expand))
+  [void]$arrExistingMGs.Add((Get-AzManagementGroup -GroupId $MG.name -Expand))
 }
 Write-Verbose "Total existing management groups: $($arrExistingMGs.count)"
 $TenantRootMG = $ExistingManagementGroups | where-object {$_.TenantId -eq $_.Name}
 #>
-$TenantRootMG = Get-AzManagementGroup -GroupName $Script:currentTenantId
+$TenantRootMG = Get-AzManagementGroup -GroupId $Script:currentTenantId
 
 #Process management groups defined in the input file
 Foreach ($mg in $managementGroups)
@@ -314,7 +318,7 @@ Foreach ($mg in $managementGroups)
   } else {
     $mgParentName = $mg.parent
   }
-  $ExistingMg = Get-AzManagementGroup -GroupName $($mg.name) -Expand -ErrorAction SilentlyContinue
+  $ExistingMg = Get-AzManagementGroup -GroupId $($mg.name) -Expand -ErrorAction SilentlyContinue
   If ($ExistingMg)
   {
     $bExisting = $true
@@ -357,7 +361,7 @@ If ($objInput.tenantRootDisplayName -ine $TenantRootMG.DisplayName)
     Write-Output $msg
   } else {
     Write-verbose $msg
-    $UpdateTenantRootMGResult = Update-AzManagementGroup -GroupName $TenantRootMG.Name -displayName $objInput.tenantRootDisplayName
+    $UpdateTenantRootMGResult = Update-AzManagementGroup -GroupId $TenantRootMG.Name -displayName $objInput.tenantRootDisplayName
   }
 }
 if (!$script:whatif)
